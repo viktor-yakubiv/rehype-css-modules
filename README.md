@@ -6,7 +6,7 @@ A [rehype][] Plugin for resolving [CSS Modules][css-modules].
 
 [MIT][license] © [Viktor Yakubiv][author]
 
-<-- Definitions -->
+<!-- Definitions -->
 
 [license]: ./LICENSE
 
