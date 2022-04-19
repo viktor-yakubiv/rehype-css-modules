@@ -1,7 +1,7 @@
 {
-  "name": "",
+  "name": "rehype-css-modules",
   "version": "0.0.0",
-  "description": "",
+  "description": "A rehype plugin for resolving CSS modules",
   "author": "Viktor Yakubiv (www.yakubiv.com)",
   "license": "MIT"
 }
