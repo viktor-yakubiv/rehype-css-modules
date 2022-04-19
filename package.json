@@ -1,7 +1,21 @@
 {
   "name": "rehype-css-modules",
   "version": "0.0.0",
+  "type": "module",
+  "main": "index.js",
   "description": "A rehype plugin for resolving CSS modules",
   "author": "Viktor Yakubiv (www.yakubiv.com)",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^9.2.2",
+    "rehype": "^12.0.1"
+  },
+  "dependencies": {
+    "lodash.get": "^4.4.2",
+    "lodash.merge": "^4.6.2",
+    "unist-util-visit-parents": "^5.1.0"
+  },
+  "scripts": {
+    "test": "mocha test.js"
+  }
 }
