@@ -50,7 +50,10 @@ const transformer = ({
 } = {}) => tree => {
   const globalModule = clone(userGlobalModule)
   if (!scopeAll) {
-    visit(tree, testCompiled, node => {
+    const testGlobal = node =>
+      testCompiled(node) && !hasProperty(node, 'scoped')
+
+    visit(tree, testGlobal, node => {
       merge(globalModule, node.data.module)
     })
   }

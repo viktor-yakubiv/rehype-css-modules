@@ -152,4 +152,27 @@ describe('rehype-css-modules', () => {
     `
     await test(source, expected, { scopeAll: true })
   })
+
+  // NOTE: Scoped styles are applied to parent due to the implementation.
+  //       I am not sure if this is a correct and expected behavior
+  //       and could change this if get an advice about.
+  it('supports scoping', async () => {
+    const source = `
+      <div class="local global">
+        <div class="local global">
+          <style scoped module>.local { color: #000 }</style>
+          <div class="local global"></div>
+        </div>
+      </div>
+    `
+    const expected = `
+      <div class="local global">
+        <div class="_local global">
+          <style scoped module>._local { color: #000 }</style>
+          <div class="_local global"></div>
+        </div>
+      </div>
+    `
+    await test(source, expected)
+  })
 })
