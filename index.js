@@ -1,55 +1,85 @@
-import get from 'lodash.get'
+import clone from 'lodash.clonedeep'
 import merge from 'lodash.merge'
+import postcss from 'rehype-postcss'
+import postcssModules from 'postcss-modules'
+import { hasProperty } from 'hast-util-has-property'
 import { visitParents as visit } from 'unist-util-visit-parents'
+import apply from './lib/apply-module.js'
 
-const apply = (tree, module, options = {} ) => {
-  const { property = 'className', keepProperty = false } = options
+const testCompiled = node => node.data?.exports?.['postcss-modules'] != null
+const testNotCompiled = node => !testCompiled(node)
 
-  const test = node => node.type == 'element' && node.properties?.[property]
-  const visitor = node => {
-    if (property === 'className') {
-      const className = node.properties.className
-        .map(name => get(module, name, name))
+const useCompiler = (processor, flag, pluginOptions, postcssOptions) => {
+  if (flag === false || flag === 'none') return processor
 
-      Object.assign(node.properties, { className })
-      return
-    }
+  const options = Object.assign({
+    // Some convenience by default
+    localsConvention: 'camelCase',
 
-    const className = node.properties.className ?? []
-    const moduleNames = Array.isArray(node.properties[property])
-      ? node.properties[property]
-      : node.properties[property].split(/\s+/g)
+    // Prevent writing `*.json` files next to HTML files
+    getJSON: () => {},
+  }, pluginOptions || {})
 
-    moduleNames.forEach(name => {
-      const newName = get(module, name)
-      if (newName != null) {
-        className.push(newName)
-      }
-    })
+  const test = flag === 'all' || flag === true
+    ? testNonCompiled
+    : node => testNotCompiled(node) && hasProperty(node, 'module') // 'auto'
 
-    Object.assign(node.properties, { className })
-
-    if (!keepProperty) {
-      delete node.properties[property]
-    }
-  }
-
-  visit(tree, test, visitor)
+  return processor.use(postcss, {
+    test,
+    plugins: [postcssModules(options)],
+    options: postcssOptions,
+  })
 }
 
-const attach = ({
-  module: globalModule = {},
+const exporter = () => tree => {
+  visit(tree, testCompiled, node => {
+    const scope = node.properties.module ?? ''
+    const module = node.data.exports['postcss-modules']
+
+    Object.assign(node.data, {
+      module: scope ? { [scope]: module } : module,
+    })
+  })
+}
+
+const transformer = ({
+  module: userGlobalModule = {},
   property = 'className',
   keepProperty = false,
-} = {}) => {
-  const transform = async (tree, file) => {
-    const context = [globalModule]
-    const currentModule = merge({}, ...context)
-
-    apply(tree, currentModule, { property, keepProperty })
+  scopeAll = false,
+} = {}) => tree => {
+  const globalModule = clone(userGlobalModule)
+  if (!scopeAll) {
+    visit(tree, testCompiled, node => {
+      merge(globalModule, node.data.module)
+    })
   }
 
-  return transform
+  const context = [globalModule]
+  const testScoped = scopeAll
+    ? testCompiled
+    : node => testCompiled(node) && hasProperty(node, 'scoped')
+
+  visit(tree, testScoped, (node, ancestors) => {
+    context.length = ancestors.length
+    context.push(node.data.module)
+
+    const parent = ancestors[ancestors.length - 1]
+    const currentModule = merge({}, ...context)
+    apply(parent, currentModule, { property, keepProperty })
+  })
+
+  apply(tree, globalModule, { property, keepProperty })
+}
+
+function attach({
+  compile: cssModulesOptions = true,
+  postcssOptions,
+  ...transformerOptions
+} = {}) {
+  useCompiler(this, 'auto', cssModulesOptions, postcssOptions)
+    .use(exporter)
+    .use(transformer, transformerOptions)
 }
 
 export default attach
