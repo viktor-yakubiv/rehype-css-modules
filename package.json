@@ -1,6 +1,6 @@
 {
   "name": "rehype-css-modules",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "main": "index.js",
   "description": "A rehype plugin for resolving CSS modules",
