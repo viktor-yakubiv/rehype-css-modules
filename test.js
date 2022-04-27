@@ -23,12 +23,14 @@ describe('rehype-css-modules', () => {
     ...restOptions,
   })
 
-  const run = (file, options) => rehype()
+  const makeProcessor = options => rehype()
     .data('settings', {
       fragment: true,
       collapseEmptyAttributes: true,
     })
     .use(modules, makeOptions(options))
+
+  const run = (file, options) => makeProcessor(options)
     .process(file)
     .then(result => result.value)
 
@@ -174,5 +176,17 @@ describe('rehype-css-modules', () => {
       </div>
     `
     await test(source, expected)
+  })
+
+  it('splits composed class names internally', async () => {
+    const source = '<div class="a"></div>'
+    const module = { a: '_a _b' } // .a { composes: b }
+    const expectedClassName = ['_a', '_b']
+
+    const processor = makeProcessor({ module })
+    const receivedTree = await processor.run(processor.parse(source))
+    const receivedClassName = receivedTree.children[0].properties.className
+
+    assert.deepEqual(receivedClassName, expectedClassName)
   })
 })
